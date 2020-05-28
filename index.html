@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Tank battle simulator</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"></script>
+
+    <script>
+        var BASE_URL = "http://142.93.173.130:5000";
+        //var BASE_URL = "http://localhost:5000";
+        $(document).ready(function () {
+            $.ajax({
+                url: BASE_URL + '/tanks',
+                type: 'get',
+                crossDomain: true,
+                dataType: 'json',
+                success: function (response) {
+                    console.log(response);
+
+                    var len = response.length;
+
+                    $("#select-tank1").empty();
+                    $("#select-tank2").empty();
+                    for (var i = 0; i < len; i++) {
+                        console.log(response[i]);
+                        var id = response[i]['id'];
+                        $("#select-tank1").append("<option value='" + id + "'>" + id + "</option>");
+                        $("#select-tank2").append("<option value='" + id + "'>" + id + "</option>");
+                    }
+                }
+            });
+
+            $('#submit').click(function() {
+               var tankId1 = $('#select-tank1').val();
+               var tankId2 = $('#select-tank2').val();
+
+               if (!tankId2 || !tankId1) {
+                   $('#result').text("Please fill all required fields.")
+               } else {
+                   var noOfBattles = $('#noOfBattles').val();
+                   $.ajax({
+                       url: BASE_URL + '/tanks/battles/' + tankId1 + "/" + tankId2 + (noOfBattles ? "/" + noOfBattles : ""),
+                       type: 'get',
+                       crossDomain: true,
+                       dataType: 'json',
+                       success: function (response) {
+                           console.log(response);
+                           console.log(response.length);
+                           var text = "";
+                           if (response['rounds']) {
+                               text = "Game with simulation id: " + response['id'] + " was " + (response['winner'] ? ("won by tank with id " + response['winner']['id']) : " a draw because " + (response['rounds'].length < 50 ? "both tanks were destroyed." : " simulation was taking tool long"));
+                           } else {
+                               Object.keys(response).forEach(function(key) {
+                                   value = response[key];
+                                   console.log(value);
+                                   text += "Game with simulation id: " + value['id'] + " was " + (value['winner'] ? ("won by tank with id " + value['winner']['id']) : " a draw because " + (value['rounds'].length < 50 ? "both tanks were destroyed." : " simulation was taking tool long"));
+                                   text += "===";
+                               });
+                           }
+                           $('#result').empty();
+                           $('#result').html(text);
+                       }
+                   });
+               }
+
+                $('#getBattle').click(function() {
+                    var battleId = $('#battleId').val();
+
+                    if (!battleId) {
+                        $('#result').text("Please fill battleId field.")
+                    } else {
+                        $.ajax({
+                            url: BASE_URL + '/tanks/battles/' + battleId,
+                            type: 'get',
+                            crossDomain: true,
+                            dataType: 'json',
+                            success: function (response) {
+                                console.log(response);
+                                var text = "";
+                                for (var i = 0; i < response['rounds'].length; i++) {
+                                    var round = response['rounds'][i];
+                                    text += "Round " + round['roundNumber'] + " first tank with "+ round['firstTankHP'] + " life in positon: (" + round['firstTankX'] + "," + round['firstTankY'] + ") and oriented " + round['firstTankMovementOrientation'] + " === ";
+                                    text += "second tank with "+ round['secondTankHP'] + " life in position: (" + round['secondTankX'] + "," + round['secondTankY'] + ") and oriented " + round['firstTankMovementOrientation'] + "======";
+                                }
+                                text += "Winner " + response['winner']['id'];
+                                $('#result').empty();
+                                $('#result').html(text);
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+
+<body>
+<nav class="navbar navbar-dark bg-primary navbar-fixed-top navbar-expand-lg">
+    <div class="container">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="#home">Tanks</a>
+        </div>
+    </div>
+</nav>
+
+
+<div class="container">
+    <div class="jumbotron">
+        <h1>Simulate new battle</h1>
+        <div class="form-group">
+            <label for="select-tank1">First tank: </label>
+            <select class="form-control form-control-lg" id="select-tank1" required>
+                <option>Select first tank</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="select-tank2">Second tank: </label>
+            <select class="form-control form-control-lg" id="select-tank2" required>
+                <option>Select second tank</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="noOfBattles">Number of battles: </label>
+            <input type="number" class="form-control" id="noOfBattles">
+        </div>
+        <div class="form-group text-center">
+            <input type="submit" class="btn btn-primary" id="submit" value="Submit"/>
+        </div>
+
+        <div class="form-group">
+            <label for="battleId">Battle id: </label>
+            <input type="number" class="form-control" id="battleId">
+        </div>
+        <div class="form-group text-center">
+            <input type="submit" class="btn btn-primary" id="getBattle" value="See battle details"/>
+        </div>
+
+        <div id="result"></div>
+    </div>
+</div>
+
+</body>
+</html>
